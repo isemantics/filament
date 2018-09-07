@@ -318,8 +318,8 @@ void FilamentApp::run(const Config& config, SetupCallback setupCallback,
             // from our event handler)
             ImGuiIO& io = ImGui::GetIO();
             int mx, my;
-            Uint32 buttons = SDL_GetMouseState(&mx, &my);
             io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
+            Uint32 buttons = SDL_GetMouseState(&mx, &my);
             io.MouseDown[0] = mousePressed[0] || (buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0;
             io.MouseDown[1] = mousePressed[1] || (buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0;
             io.MouseDown[2] = mousePressed[2] || (buttons & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0;

@@ -33,6 +33,8 @@
 #include <functional>
 #include <memory>
 
+#include <imgui.h>
+
 #include <emscripten.h>
 
 namespace filaweb {
@@ -95,6 +97,7 @@ public:
         mGuiView->setShadowsEnabled(false);
         mGuiView->setCamera(mGuiCam);
         mGuiHelper = new filagui::ImGuiHelper(mEngine, mGuiView, "");
+        ImGui::GetIO().IniFilename = nullptr;
         setup(mEngine, mView, mScene);
     }
 
@@ -109,12 +112,24 @@ public:
         mGuiHelper->setDisplaySize(width / pixelRatio, height / pixelRatio, pixelRatio, pixelRatio);
     }
 
+    void mouse(uint32_t x, uint32_t y, int32_t wx, int32_t wy, uint16_t buttons) {
+        auto& io = ImGui::GetIO();
+        if (wx > 0) io.MouseWheelH += 1;
+        if (wx < 0) io.MouseWheelH -= 1;
+        if (wy > 0) io.MouseWheel += 1;
+        if (wy < 0) io.MouseWheel -= 1;
+        io.MousePos.x = x;
+        io.MousePos.y = y;
+        io.MouseDown[0] = buttons & 1;
+        io.MouseDown[1] = buttons & 2;
+        io.MouseDown[2] = buttons & 4;
+    }
+
     void render() {
         auto milliseconds_since_epoch =
             std::chrono::system_clock::now().time_since_epoch() /
             std::chrono::milliseconds(1);
         mAnimation(mEngine, mView, milliseconds_since_epoch / 1000.0);
-        mGuiCallback(mEngine, mView);
     
         double now = milliseconds_since_epoch / 1000.0;
         static double previous = now;
