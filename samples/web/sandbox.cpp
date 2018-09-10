@@ -58,6 +58,21 @@ static SandboxApp app;
 void setup(Engine* engine, View* view, Scene* scene) {
     app.scene = scene;
 
+    // These initial values seem reasonable with the "pillars_2k" envmap.
+    app.params.iblIntensity = 10000.0f;
+    app.params.lightDirection.x = 0;
+    app.params.lightDirection.y = 0;
+    app.params.lightDirection.z = -1;
+    app.params.iblRotation = M_PI;
+
+    // These initial values look pretty nice with the shaderball.
+    app.params.clearCoat = 0.7f;
+    app.params.metallic = 0.25f;
+    app.params.reflectance = 0.75f;
+    app.params.color.x = 158 / 255.0f;
+    app.params.color.y = 118 / 255.0f;
+    app.params.color.z = 74 / 255.0f;
+
     // Create material.
     createInstances(app.params, *engine);
 
@@ -83,14 +98,13 @@ void setup(Engine* engine, View* view, Scene* scene) {
     scene->setIndirectLight(app.skylight.indirectLight);
     scene->setSkybox(app.skylight.skybox);
 
-    const math::float3 center {0, 1.05, -1};
-    const math::float3 eye {0, 1, 0};
-
     app.cam = engine->createCamera();
     app.cam->setExposure(16.0f, 1 / 125.0f, 100.0f);
-    app.cam->lookAt(eye, center);
     view->setCamera(app.cam);
-    view->setClearColor({0.1, 0.125, 0.25, 1.0});
+
+    auto& manip = filaweb::Application::get()->getManipulator();
+    manip.setCamera(app.cam);
+    manip.lookAt(math::double3({0, 1, 7}), math::double3({0, 1, 0}));
 };
 
 void animate(Engine* engine, View* view, double now) {
@@ -102,12 +116,6 @@ void animate(Engine* engine, View* view, double now) {
     const uint32_t height = view->getViewport().height;
     double ratio = double(width) / height;
     app.cam->setProjection(45.0, ratio, 0.1, 50.0, ratio < 1 ? Fov::HORIZONTAL : Fov::VERTICAL);
-
-    // Spin the object.
-    auto& tcm = engine->getTransformManager();
-    tcm.setTransform(tcm.getInstance(app.filamesh->renderable),
-        mat4f{mat3f{1.0}, float3{0.0f, 0.0f, -5.0f}} *
-        mat4f::rotate(now, math::float3{0, 1, 0}));
 };
 
 void ui(Engine* engine, View* view) {

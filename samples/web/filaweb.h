@@ -37,6 +37,8 @@
 
 #include <emscripten.h>
 
+#include "../app/CameraManipulator.h"
+
 namespace filaweb {
 
 // Filaweb defines three kinds of assets: raw files, single-mip textures, and cubemaps.
@@ -107,6 +109,7 @@ public:
         mPixelRatio = pixelRatio;
         mView->setViewport({0, 0, width, height});
         mGuiView->setViewport({0, 0, width, height});
+        mManipulator.setViewport(width, height);
         mGuiCam->setProjection(filament::Camera::Projection::ORTHO,
             0.0, width / pixelRatio,
             height / pixelRatio, 0.0,
@@ -115,6 +118,7 @@ public:
     }
 
     void mouse(uint32_t x, uint32_t y, int32_t wx, int32_t wy, uint16_t buttons) {
+        // Pass values to ImGui.
         auto& io = ImGui::GetIO();
         if (wx > 0) io.MouseWheelH += 1;
         if (wx < 0) io.MouseWheelH -= 1;
@@ -125,12 +129,32 @@ public:
         io.MouseDown[0] = buttons & 1;
         io.MouseDown[1] = buttons & 2;
         io.MouseDown[2] = buttons & 4;
+
+        // Negate Y before pushing values to the manipulator to look like OpenGL.
+        y = -y;
+        wy = -wy;
+
+        // Pass values to the camera manipulator.
+        using namespace math;
+        static double2 lastMousePosition = double2(x, y);
+        double2 delta = double2(x, y) - lastMousePosition;
+        lastMousePosition = double2(x, y);
+        mManipulator.dolly(wy);
+        if (!io.WantCaptureMouse) {
+            if (buttons & 1) {
+                mManipulator.rotate(delta);
+            } else if (buttons & 2) {
+                mManipulator.track(delta);
+            }
+        }
     }
 
     void render() {
-        auto milliseconds_since_epoch =
-            std::chrono::system_clock::now().time_since_epoch() /
-            std::chrono::milliseconds(1);
+        using namespace std::chrono;
+
+        mManipulator.updateCameraTransform();
+
+        auto milliseconds_since_epoch = system_clock::now().time_since_epoch() / milliseconds(1);
         mAnimation(mEngine, mView, milliseconds_since_epoch / 1000.0);
     
         double now = milliseconds_since_epoch / 1000.0;
@@ -146,6 +170,8 @@ public:
         mEngine->execute();
     }
 
+    CameraManipulator& getManipulator() { return mManipulator; }
+
 private:
     Application() { }
     filagui::ImGuiHelper* mGuiHelper = nullptr;
@@ -156,6 +182,7 @@ private:
     filament::Camera* mGuiCam = nullptr;
     filament::Renderer* mRenderer = nullptr;
     filament::SwapChain* mSwapChain = nullptr;
+    CameraManipulator mManipulator;
     AnimCallback mAnimation;
     ImGuiCallback mGuiCallback;
     double mPixelRatio = 1.0;
